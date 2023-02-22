@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "probcolli"
+version = "0.1.0"
+authors = [
+  { name="Vistor"},
+  { name="Javi GP"},
+]
+description = "A cool set of collision checkers from robotic manipulators using probabilistic methods"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "torch",
+    "torchbnn",
+    "gpytorch",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/vistormu/prob_cc"
+"Bug Tracker" = "https://github.com/vistormu/prob_cc/issues"
