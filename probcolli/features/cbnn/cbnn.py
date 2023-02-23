@@ -14,6 +14,7 @@ from .entities import CBNNInfo
 
 class CBNN:
     def __init__(self, dof: int) -> None:
+        self.dof: int = dof
         self.model: nn.Sequential = nn.Sequential(
             bnn.BayesLinear(prior_mu=0, prior_sigma=1, in_features=dof, out_features=50),
             nn.Tanh(),
@@ -100,10 +101,14 @@ class CBNN:
                         variance=variance,
                         )
 
-    def save(self, filename: str) -> None:
-        torch.save(self.model.state_dict(), filename+'_model.pth')
+    def save(self, destination: str) -> None:
+        torch.save(self.model.state_dict(), destination+'model.pth')
+        np.savetxt(destination+'class_data.txt', [self.dof], delimiter=',')
 
-    def load(self, filename: str) -> None:
-        # TODO: check that dof matches with model
-        state_dict = torch.load(filename+'_model.pth')
-        self.model.load_state_dict(state_dict)
+    @staticmethod
+    def load(directory: str):
+        dof = np.loadtxt(directory+'class_data.txt')
+        cbnn = CBNN(int(dof))
+        cbnn.model.state_dict = torch.load(directory+'model.pth')
+
+        return cbnn

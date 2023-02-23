@@ -15,11 +15,23 @@ def main():
     x_test = x[8000:, :]
     y_test = y[8000:]
 
-    collision_checker = CGP(1024, 12)
+    collision_checker = CGP(64, 12)
 
     collision_checker.train(x_train, y_train, epochs=20)
 
     info: CGPInfo = collision_checker.predict(x_test)
+
+    success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
+
+    Logger.info(f'{success_rate=:.2f}')
+
+    collision_checker.save('tests/models/cgp/')
+
+    Logger.info('model saved')
+
+    new_cgp: CGP = CGP.load('tests/models/cgp/')
+
+    info: CGPInfo = new_cgp.predict(x_test)
 
     success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
 

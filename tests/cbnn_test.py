@@ -25,6 +25,18 @@ def main():
 
     Logger.info(f'{success_rate=:.2f}')
 
+    cbnn.save('tests/models/cgp/')
+
+    Logger.info('model saved')
+
+    new_cbnn: CBNN = CBNN.load('tests/models/cgp/')
+
+    info  = new_cbnn.predict(x_test)
+
+    success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
+
+    Logger.info(f'{success_rate=:.2f}')
+
 
 if __name__ == '__main__':
     main()

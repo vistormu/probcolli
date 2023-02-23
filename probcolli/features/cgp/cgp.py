@@ -14,8 +14,10 @@ from .entities import CGPInfo
 
 
 class CGP:
-    def __init__(self, m: int, dof: int) -> None:
-        self.model: GPModel = GPModel(Tensor(np.random.uniform(-1, 1, (m, dof))), dof)
+    def __init__(self, inducing_points: int, dof: int) -> None:
+        self.inducing_points: int = inducing_points
+        self.dof: int = dof
+        self.model: GPModel = GPModel(Tensor(np.random.uniform(-1, 1, (inducing_points, dof))), dof)
         self.likelihood: PGLikelihood = PGLikelihood()
 
         if torch.cuda.is_available():
@@ -73,7 +75,7 @@ class CGP:
     def predict(self, input_data: np.ndarray, beta: float = 0.5) -> CGPInfo:
         # TODO: check length of the input data
         # Initialize tensors
-        test_x: torch.Tensor = torch.Tensor(input_data)
+        test_x: torch.Tensor = torch.Tensor(input_data).cuda() if torch.cuda.is_available() else torch.Tensor(input_data)
 
         self.model.eval()
         self.likelihood.eval()
@@ -92,10 +94,16 @@ class CGP:
                        variance=variance,
                        )
 
-    def save(self, filename: str) -> None:
-        torch.save(self.model.state_dict(), filename+'_model.pth')
-        torch.save(self.likelihood.state_dict(), filename+'_likelihood.pth')
+    def save(self, destination: str) -> None:
+        torch.save(self.model.state_dict(), destination+'model.pth')
+        torch.save(self.likelihood.state_dict(), destination+'likelihood.pth')
+        np.savetxt(destination+'class_data.txt', [self.inducing_points, self.dof], delimiter=',')
 
-    def load(self, filename: str) -> None:
-        self.model = torch.load(filename+'_model.pth')
-        self.likelihood = torch.load(filename+'_likelihood.pth')
+    @staticmethod
+    def load(directory: str):
+        inducing_points, dof = np.loadtxt(directory+'class_data.txt')
+        cgp = CGP(int(inducing_points), int(dof))
+        cgp.model.state_dict = torch.load(directory+'model.pth')
+        cgp.likelihood.state_dict = torch.load(directory+'likelihood.pth')
+
+        return cgp

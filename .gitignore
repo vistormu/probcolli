@@ -30,3 +30,4 @@ vizdoom.ini
 TODO.md
 steps.md
 data/*
+tests/models/*
