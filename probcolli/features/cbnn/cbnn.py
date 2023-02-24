@@ -109,6 +109,6 @@ class CBNN:
     def load(directory: str):
         dof = np.loadtxt(directory+'class_data.txt')
         cbnn = CBNN(int(dof))
-        cbnn.model.state_dict = torch.load(directory+'model.pth')
+        cbnn.model.state_dict = torch.load(directory+'model.pth', map_location=torch.device('cpu'))
 
         return cbnn

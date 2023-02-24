@@ -1,3 +1,6 @@
+# 0.1.2
+- Fixed a bug when loading a cuda model
+
 # 0.1.1
 - Changed the name of the CGP class attribute from "m" to "inducing_points"
 - Now the load method of the classes returns the class itself instead of initializing the model and the likelihood

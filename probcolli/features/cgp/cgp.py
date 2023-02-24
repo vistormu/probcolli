@@ -103,7 +103,7 @@ class CGP:
     def load(directory: str):
         inducing_points, dof = np.loadtxt(directory+'class_data.txt')
         cgp = CGP(int(inducing_points), int(dof))
-        cgp.model.state_dict = torch.load(directory+'model.pth')
-        cgp.likelihood.state_dict = torch.load(directory+'likelihood.pth')
+        cgp.model.state_dict = torch.load(directory+'model.pth', map_location=torch.device('cpu'))
+        cgp.likelihood.state_dict = torch.load(directory+'likelihood.pth', map_location=torch.device('cpu'))
 
         return cgp
