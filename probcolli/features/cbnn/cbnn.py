@@ -63,7 +63,7 @@ class CBNN:
         data_loader: DataLoader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         for i in range(epochs):
-            for x_batch, y_batch in data_loader:
+            for j, (x_batch, y_batch) in enumerate(data_loader):
 
                 pre = self.model(x_batch)
                 ce: Tensor = ce_loss(pre[..., 0], y_batch)
@@ -74,10 +74,14 @@ class CBNN:
                 cost.backward()
                 optimizer.step()
 
-            Logger.info(f'Training in progress... {int((i/epochs)*100)}%', flush=True)
+                Logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
+
+        Logger.info('Training in progress... 100%')
 
     def predict(self, input_data: np.ndarray, beta: float = 0.5, samples_test: int = 10) -> CBNNInfo:
-        # TODO: check length of the input data
+        if not input_data.size - len(input_data):
+            input_data = np.array([input_data])
+
         # Initialize tensors
         test_x: Tensor = Tensor(input_data).cuda() if torch.cuda.is_available() else Tensor(input_data)
 

@@ -1,3 +1,7 @@
+# 0.1.3
+- Now a model can predict from a single value
+- The training percentage is now more accurate
+
 # 0.1.2
 - Fixed a bug when loading a cuda model
 

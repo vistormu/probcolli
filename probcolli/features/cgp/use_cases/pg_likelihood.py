@@ -1,8 +1,10 @@
-import gpytorch
 import torch
 
+from torch.distributions import Bernoulli
+from gpytorch.likelihoods import _OneDimensionalLikelihood
 
-class PGLikelihood(gpytorch.likelihoods._OneDimensionalLikelihood):
+
+class PGLikelihood(_OneDimensionalLikelihood):
     # this method effectively computes the expected log likelihood
     # contribution to Eqn (10) in Reference [1].
     def expected_log_prob(self, target, input, *args, **kwargs):
@@ -29,10 +31,10 @@ class PGLikelihood(gpytorch.likelihoods._OneDimensionalLikelihood):
 
     # define the likelihood
     def forward(self, function_samples):
-        return torch.distributions.Bernoulli(logits=function_samples)
+        return Bernoulli(logits=function_samples)
 
     # define the marginal likelihood using Gauss Hermite quadrature
     def marginal(self, function_dist):
         def prob_lambda(function_samples): return self.forward(function_samples).probs
         probs = self.quadrature(prob_lambda, function_dist)
-        return torch.distributions.Bernoulli(probs=probs)
+        return Bernoulli(probs=probs)

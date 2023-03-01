@@ -4,9 +4,11 @@ import numpy as np
 from torch import Tensor
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
+from torch.distributions import Bernoulli
 from gpytorch.optim import NGD
 from gpytorch.mlls import VariationalELBO
 from gpytorch.distributions.multivariate_normal import MultivariateNormal
+
 
 from ...core import Logger
 from .use_cases import GPModel, PGLikelihood
@@ -58,7 +60,7 @@ class CGP:
         data_loader: DataLoader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         for i in range(epochs):
-            for x_batch, y_batch in data_loader:
+            for j, (x_batch, y_batch) in enumerate(data_loader):
                 variational_ngd_optimizer.zero_grad()
                 hyperparameter_optimizer.zero_grad()
 
@@ -70,10 +72,14 @@ class CGP:
                 variational_ngd_optimizer.step()
                 hyperparameter_optimizer.step()
 
-            Logger.info(f'Training in progress... {int((i/epochs)*100)}%', flush=True)
+                Logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
+
+        Logger.info('Training in progress... 100%')
 
     def predict(self, input_data: np.ndarray, beta: float = 0.5) -> CGPInfo:
-        # TODO: check length of the input data
+        if not input_data.size - len(input_data):
+            input_data = np.array([input_data])
+
         # Initialize tensors
         test_x: torch.Tensor = torch.Tensor(input_data).cuda() if torch.cuda.is_available() else torch.Tensor(input_data)
 
@@ -81,10 +87,10 @@ class CGP:
         self.likelihood.eval()
 
         with torch.no_grad():
-            predictions = self.likelihood(self.model(test_x))
-            mean = predictions.mean.cpu().numpy()  # type: ignore
-            deviation = predictions.stddev.cpu().numpy()  # type: ignore
-            variance = predictions.variance.cpu().numpy()  # type: ignore
+            predictions: Bernoulli = self.likelihood(self.model(test_x))  # type:ignore
+            mean: np.ndarray = predictions.mean.cpu().numpy()  # type:ignore
+            deviation: np.ndarray = predictions.stddev.cpu().numpy()  # type: ignore
+            variance: np.ndarray = predictions.variance.cpu().numpy()  # type: ignore
 
         decision: np.ndarray = mean + beta*deviation
 

@@ -37,6 +37,12 @@ def main():
 
     Logger.info(f'{success_rate=:.2f}')
 
+    # Try to predict only one value
+    value: np.ndarray = np.random.uniform(-1.0, 1.0, size=12)
+    info: CGPInfo = new_cgp.predict(value)
+
+    Logger.info('decision: ', info.decision)
+
 
 if __name__ == '__main__':
     main()
