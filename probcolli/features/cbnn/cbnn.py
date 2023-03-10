@@ -2,13 +2,12 @@ import torch
 import numpy as np
 import torchbnn as bnn
 
+from vclog import Logger
 from torch import Tensor
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 from torch import nn
 
-
-from ...core import Logger
 from .entities import CBNNInfo
 
 
@@ -28,6 +27,8 @@ class CBNN:
 
         if torch.cuda.is_available():
             self.model = self.model.cuda()
+
+        self._logger: Logger = Logger('cbnn')
 
     def train(self,
               input_data: np.ndarray,
@@ -74,9 +75,9 @@ class CBNN:
                 cost.backward()
                 optimizer.step()
 
-                Logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
+                self._logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
 
-        Logger.info('Training in progress... 100%')
+        self._logger.info('Training in progress... 100%')
 
     def predict(self, input_data: np.ndarray, beta: float = 0.5, samples_test: int = 10) -> CBNNInfo:
         if not input_data.size - len(input_data):
@@ -110,9 +111,9 @@ class CBNN:
         np.savetxt(destination+'class_data.txt', [self.dof], delimiter=',')
 
     @staticmethod
-    def load(directory: str):
+    def from_model(directory: str):
         dof = np.loadtxt(directory+'class_data.txt')
         cbnn = CBNN(int(dof))
-        cbnn.model.state_dict = torch.load(directory+'model.pth', map_location=torch.device('cpu'))
+        cbnn.model.load_state_dict(torch.load(directory+'model.pth', map_location=torch.device('cpu')))
 
         return cbnn

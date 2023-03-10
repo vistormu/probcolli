@@ -1,3 +1,8 @@
+# 0.1.4
+- Migrated the log to vclog
+- Fixed a bug where the load method did just not work
+- Changed the name of the load method to "from_model" to emphasize that it is a constructor method
+
 # 0.1.3
 - Now a model can predict from a single value
 - The training percentage is now more accurate

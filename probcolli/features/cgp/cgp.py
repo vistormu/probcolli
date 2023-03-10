@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+from vclog import Logger
 from torch import Tensor
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
@@ -9,8 +10,6 @@ from gpytorch.optim import NGD
 from gpytorch.mlls import VariationalELBO
 from gpytorch.distributions.multivariate_normal import MultivariateNormal
 
-
-from ...core import Logger
 from .use_cases import GPModel, PGLikelihood
 from .entities import CGPInfo
 
@@ -21,6 +20,8 @@ class CGP:
         self.dof: int = dof
         self.model: GPModel = GPModel(Tensor(np.random.uniform(-1, 1, (inducing_points, dof))), dof)
         self.likelihood: PGLikelihood = PGLikelihood()
+
+        self._logger: Logger = Logger('cgp')
 
         if torch.cuda.is_available():
             self.model = self.model.cuda()
@@ -72,9 +73,9 @@ class CGP:
                 variational_ngd_optimizer.step()
                 hyperparameter_optimizer.step()
 
-                Logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
+                self._logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
 
-        Logger.info('Training in progress... 100%')
+        self._logger.info('Training in progress... 100%')
 
     def predict(self, input_data: np.ndarray, beta: float = 0.5) -> CGPInfo:
         if not input_data.size - len(input_data):
@@ -106,10 +107,10 @@ class CGP:
         np.savetxt(destination+'class_data.txt', [self.inducing_points, self.dof], delimiter=',')
 
     @staticmethod
-    def load(directory: str):
+    def from_model(directory: str):
         inducing_points, dof = np.loadtxt(directory+'class_data.txt')
         cgp = CGP(int(inducing_points), int(dof))
-        cgp.model.state_dict = torch.load(directory+'model.pth', map_location=torch.device('cpu'))
-        cgp.likelihood.state_dict = torch.load(directory+'likelihood.pth', map_location=torch.device('cpu'))
+        cgp.model.load_state_dict(torch.load(directory+'model.pth', map_location=torch.device('cpu')))
+        cgp.likelihood.load_state_dict(torch.load(directory+'likelihood.pth', map_location=torch.device('cpu')))
 
         return cgp

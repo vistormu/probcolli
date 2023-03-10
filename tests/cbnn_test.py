@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 
-from probcolli import CBNN, Logger
+from vclog import Logger
+from probcolli import CBNN
 from probcolli.entities import CBNNInfo
 
 
@@ -29,13 +30,19 @@ def main():
 
     Logger.info('model saved')
 
-    new_cbnn: CBNN = CBNN.load('tests/models/cgp/')
+    new_cbnn: CBNN = CBNN.from_model('tests/models/cgp/')
 
-    info  = new_cbnn.predict(x_test)
+    info = new_cbnn.predict(x_test)
 
     success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
 
     Logger.info(f'{success_rate=:.2f}')
+
+    # Try to predict only one value
+    value: np.ndarray = np.random.uniform(-1.0, 1.0, size=12)
+    info: CBNNInfo = new_cbnn.predict(value)
+
+    Logger.info('decision: ', info.decision[0])
 
 
 if __name__ == '__main__':
