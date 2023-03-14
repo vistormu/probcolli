@@ -1,3 +1,7 @@
+# 0.1.5
+- Fixed the training percentage
+- Fixed a bug where the optimizer did not optimize the lengthscale tensor
+
 # 0.1.4
 - Migrated the log to vclog
 - Fixed a bug where the load method did just not work

@@ -1,48 +1,57 @@
 import pandas as pd
 import numpy as np
+import bgplot as bgp
 
+from bgplot.entities import Point
 from vclog import Logger
 from probcolli import CBNN
 from probcolli.entities import CBNNInfo
 
 
 def main():
-    x = pd.read_csv('tests/data/x.csv').to_numpy()
-    y = pd.read_csv('tests/data/y.csv').to_numpy().flatten()
+    # Read data
+    points: np.ndarray = pd.read_csv('tests/data/end_effector.csv').to_numpy()
+    points = points/np.max(points)
+    labels: np.ndarray = pd.read_csv('tests/data/labels.csv').to_numpy().flatten()
 
-    x_train = x[:8000, :]
-    y_train = y[:8000]
+    # Hyperparameters
+    dof: int = 3
+    epochs: int = 30
+    batch_size: int = 128
+    lr: float = 0.01
+    beta: float = 0.5
 
-    x_test = x[8000:, :]
-    y_test = y[8000:]
+    # Train
+    cbnn: CBNN = CBNN(dof)
+    cbnn.train(points, labels, epochs, batch_size, lr)
 
-    cbnn = CBNN(12)
+    # Predict
+    info: CBNNInfo = cbnn.predict(points, beta)
 
-    cbnn.train(x_train, y_train)
+    # Visualize
+    figure: bgp.Graphics = bgp.Graphics()
+    figure.set_limits(xlim=(0.0, 0.5), ylim=(0, 0.5), zlim=(0.0, 1.2))
+    figure.set_view(180.0, 20.0)
+    figure.disable('grid', 'ticks', 'axes', 'walls')
+    figure.set_background_color(bgp.Colors.white)
 
-    info: CBNNInfo = cbnn.predict(x_test)
+    points_q5: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.25]
+    points_q4: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.5 and decision > 0.25]
+    points_q3: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.75 and decision > 0.5]
+    points_q2: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.9 and decision > 0.75]
+    points_q1: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision >= 0.9]
 
-    success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
+    collided_points: list[Point] = [Point(*point) for point, label in zip(points, labels) if label]
 
-    Logger.info(f'{success_rate=:.2f}')
+    figure.add_points(points_q5, style=',', color=bgp.Colors.blue)
+    figure.add_points(points_q4, style=',', color=bgp.Colors.green)
+    figure.add_points(points_q3, style=',', color=bgp.Colors.yellow)
+    figure.add_points(points_q2, style=',', color=bgp.Colors.yellow_orange)
+    figure.add_points(points_q1, style=',', color=bgp.Colors.red)
 
-    cbnn.save('tests/models/cgp/')
+    # figure.add_points(collided_points, style=',')
 
-    Logger.info('model saved')
-
-    new_cbnn: CBNN = CBNN.from_model('tests/models/cgp/')
-
-    info = new_cbnn.predict(x_test)
-
-    success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
-
-    Logger.info(f'{success_rate=:.2f}')
-
-    # Try to predict only one value
-    value: np.ndarray = np.random.uniform(-1.0, 1.0, size=12)
-    info: CBNNInfo = new_cbnn.predict(value)
-
-    Logger.info('decision: ', info.decision[0])
+    figure.show()
 
 
 if __name__ == '__main__':

@@ -1,49 +1,63 @@
 import pandas as pd
 import numpy as np
+import bgplot as bgp
 
+from bgplot.entities import Point
 from vclog import Logger
 from probcolli import CGP
 from probcolli.entities import CGPInfo
 
 
 def main():
-    x = pd.read_csv('tests/data/x.csv').to_numpy()
-    y = pd.read_csv('tests/data/y.csv').to_numpy().flatten()
+    # Read data
+    points: np.ndarray = pd.read_csv('tests/data/end_effector.csv').to_numpy()
+    points = points/np.max(points)
+    labels: np.ndarray = pd.read_csv('tests/data/labels.csv').to_numpy().flatten()
 
-    x_train = x[:8000, :]
-    y_train = y[:8000]
+    # Hyperparameters
+    inducing_points: int = 512
+    dof: int = 3
+    epochs: int = 10
+    batch_size: int = 128
+    variational_lr: float = 0.5
+    hyperparameter_lr: float = 0.1
+    beta: float = 0.1
 
-    x_test = x[8000:, :]
-    y_test = y[8000:]
+    # Train
+    cgp: CGP = CGP(inducing_points, dof)
+    cgp.train(points, labels, epochs, batch_size, variational_lr, hyperparameter_lr)
 
-    collision_checker = CGP(128, 12)
+    for name, param in cgp.model.named_parameters():
+        if param.requires_grad:
+            Logger.debug(name, param.data, sep=' ')
 
-    collision_checker.train(x_train, y_train, epochs=20)
+    # Predict
+    info: CGPInfo = cgp.predict(points, beta)
 
-    info: CGPInfo = collision_checker.predict(x_test)
+    # Visualize
+    figure: bgp.Graphics = bgp.Graphics()
+    figure.set_limits(xlim=(0.0, 0.5), ylim=(0, 0.5), zlim=(0.0, 1.2))
+    figure.set_view(180.0, 20.0)
+    figure.disable('grid', 'ticks', 'axes', 'walls')
+    figure.set_background_color(bgp.Colors.white)
 
-    success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
+    points_q5: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.25]
+    points_q4: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.5 and decision > 0.25]
+    points_q3: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.75 and decision > 0.5]
+    points_q2: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision <= 0.9 and decision > 0.75]
+    points_q1: list[Point] = [Point(*point) for point, decision in zip(points, info.decision) if decision >= 0.9]
 
-    Logger.info(f'{success_rate=:.2f}')
+    collided_points: list[Point] = [Point(*point) for point, label in zip(points, labels) if label]
 
-    collision_checker.save('tests/models/cgp/')
+    figure.add_points(points_q5, style=',', color=bgp.Colors.blue)
+    figure.add_points(points_q4, style=',', color=bgp.Colors.green)
+    figure.add_points(points_q3, style=',', color=bgp.Colors.yellow)
+    figure.add_points(points_q2, style=',', color=bgp.Colors.yellow_orange)
+    figure.add_points(points_q1, style=',', color=bgp.Colors.red)
 
-    Logger.info('model saved')
+    figure.add_points(collided_points, style=',')
 
-    new_cgp: CGP = CGP.from_model('tests/models/cgp/')
-
-    info: CGPInfo = new_cgp.predict(x_test)
-
-    success_rate: float = np.sum(np.logical_and(info.decision, y_test))/len(y_test)
-
-    Logger.info(f'{success_rate=:.2f}')
-    Logger.info(f'min: {min(info.decision)}, max: {max(info.decision)}')
-
-    # Try to predict only one value
-    value: np.ndarray = np.random.uniform(-1.0, 1.0, size=12)
-    info: CGPInfo = new_cgp.predict(value)
-
-    Logger.info('decision: ', info.decision[0])
+    figure.show()
 
 
 if __name__ == '__main__':

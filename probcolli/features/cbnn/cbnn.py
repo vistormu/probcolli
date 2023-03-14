@@ -75,7 +75,7 @@ class CBNN:
                 cost.backward()
                 optimizer.step()
 
-                self._logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
+                self._logger.info(f'Training in progress... {int((i/epochs)*100+(j/len(data_loader))*100/epochs)}%', flush=True)
 
         self._logger.info('Training in progress... 100%')
 

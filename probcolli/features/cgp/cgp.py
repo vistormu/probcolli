@@ -16,12 +16,14 @@ from .entities import CGPInfo
 
 class CGP:
     def __init__(self, inducing_points: int, dof: int) -> None:
+        # Variables
         self.inducing_points: int = inducing_points
         self.dof: int = dof
-        self.model: GPModel = GPModel(Tensor(np.random.uniform(-1, 1, (inducing_points, dof))), dof)
-        self.likelihood: PGLikelihood = PGLikelihood()
-
         self._logger: Logger = Logger('cgp')
+
+        # Models
+        self.model: GPModel = GPModel(Tensor(np.random.uniform(-1.0, 1.0, (inducing_points, dof))), dof)
+        self.likelihood: PGLikelihood = PGLikelihood()
 
         if torch.cuda.is_available():
             self.model = self.model.cuda()
@@ -53,7 +55,9 @@ class CGP:
 
         # Optimizers
         variational_ngd_optimizer: NGD = NGD(self.model.variational_parameters(), num_data=train_y.size(0), lr=variational_lr)
-        hyperparameter_optimizer: Adam = Adam([{'params': self.model.hyperparameters(), 'params': self.likelihood.parameters()},], lr=hyperparameter_lr)
+        hyperparameter_optimizer: Adam = Adam([{'params': self.model.hyperparameters()},
+                                               {'params': self.likelihood.parameters()},
+                                               ], lr=hyperparameter_lr)
         loss_function: VariationalELBO = VariationalELBO(self.likelihood, self.model, num_data=train_y.size(0))
 
         # Training batch
@@ -73,7 +77,7 @@ class CGP:
                 variational_ngd_optimizer.step()
                 hyperparameter_optimizer.step()
 
-                self._logger.info(f'Training in progress... {int((i/(epochs+1))*100+(j/len(data_loader))*100/epochs)}%', flush=True)
+                self._logger.info(f'Training in progress... {int((i/epochs)*100+(j/len(data_loader))*100/epochs)}%', flush=True)
 
         self._logger.info('Training in progress... 100%')
 
